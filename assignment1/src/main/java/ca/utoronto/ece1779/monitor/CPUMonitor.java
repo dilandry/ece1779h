@@ -1,35 +1,49 @@
 package monitor;
 
-import java.awt.List;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 
 import com.amazonaws.auth.*;
 import com.amazonaws.auth.profile.*;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
-import com.amazonaws.services.cloudwatch.model.Datapoint;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 
-public class CPUMonitor {
+public class CPUMonitor implements Runnable{
 
 	private static final long ONE_HOUR = 1000 * 60 * 60;
+	private static final double DEFAULT_LOWER_THRESHOLD = 20.0;
+	private static final double DEFAULT_UPPER_THRESHOLD = 80.0;
 	
 	private static AmazonCloudWatchClient client;
 	
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
+	private WorkerPool workerPool;
+	private double lower_threshold;
+	private double upper_threshold;
+	
+	public CPUMonitor(WorkerPool workerPool){
+		this.workerPool = workerPool;
+		this.lower_threshold = DEFAULT_LOWER_THRESHOLD;
+		this.upper_threshold = DEFAULT_UPPER_THRESHOLD;
+	}
+	
+	public void run() {
 		
 		client = login();
 		
-		// Get CPU usage averaged over all the "t1.micro" instances.
-		double averageCPU = getCPUUsage("t1.micro", ONE_HOUR);
-		
-		System.out.println(averageCPU);
+        while(true) {
+		    try {
+				// Get CPU usage averaged over all the "t1.micro" instances.
+				double averageCPU = getCPUUsage("m1.small", ONE_HOUR);
+				
+				System.out.println(averageCPU);
+				
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	    }
 	}
 	
 	/**
@@ -113,16 +127,11 @@ public class CPUMonitor {
 		GetMetricStatisticsRequest request = requestType(instanceType, period);
 		GetMetricStatisticsResult result = result(request);
 		
+		// In case no instance of monitored type is launched yet.
+		if (result.getDatapoints().size() <= 0) return 0.0;
+		
 		// Makes sense only because there is only one data point.
 		return result.getDatapoints().get(0).getAverage();	
     }
-
-    private static void toStdOut(final GetMetricStatisticsResult result, final String instanceId) {
-        System.out.println(result); // outputs empty result: {Label: CPUUtilization,Datapoints: []}
-        for (final Datapoint dataPoint : result.getDatapoints()) {
-            System.out.printf("%s instance's average CPU utilization : %s%n", instanceId, dataPoint.getAverage());      
-            System.out.printf("%s instance's max CPU utilization : %s%n", instanceId, dataPoint.getMaximum());
-        }
-    }
-
+    
 }
