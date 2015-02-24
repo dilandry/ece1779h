@@ -18,8 +18,8 @@ import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 
 public class WorkerPool {
 	
-	AmazonEC2 client;
-	List<String> workerPoolInstanceIDs;
+	private AmazonEC2 client;
+	private List<String> workerPoolInstanceIDs;
 	
 	// IMAGE_ID of the instances we're launching
 	final String IMAGE_ID = "ami-5c074734";
@@ -29,6 +29,8 @@ public class WorkerPool {
 		
 		client = login();
 		workerPoolInstanceIDs = new ArrayList<String>();
+		
+		launchInstances(1);
 		
 	}
 	
@@ -73,8 +75,6 @@ public class WorkerPool {
         	
         	// Add instance id to the pool.
         	workerPoolInstanceIDs.add(instances.get(0).getInstanceId());
-   
-        	System.out.println(workerPoolInstanceIDs);
 
        } catch (AmazonServiceException ase) {
             System.out.println("Caught an AmazonServiceException, which means your request made it "
@@ -90,6 +90,10 @@ public class WorkerPool {
                     + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
         }
+	}
+	
+	public int size(){
+		return workerPoolInstanceIDs.size();
 	}
 	
 	public void terminateInstances(int numberInstances){

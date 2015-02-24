@@ -12,19 +12,26 @@ import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 public class CPUMonitor implements Runnable{
 
 	private static final long ONE_HOUR = 1000 * 60 * 60;
+	private static final long ONE_MINUTE = 1000 * 60 * 1;
 	private static final double DEFAULT_LOWER_THRESHOLD = 20.0;
 	private static final double DEFAULT_UPPER_THRESHOLD = 80.0;
+	private static final int DEFAULT_INCREASE_RATIO = 2;
+	private static final int DEFAULT_DECREASE_RATIO = 2;
 	
 	private static AmazonCloudWatchClient client;
 	
 	private WorkerPool workerPool;
 	private double lower_threshold;
 	private double upper_threshold;
+	private int increase_ratio;
+	private int decrease_ratio;
 	
 	public CPUMonitor(WorkerPool workerPool){
 		this.workerPool = workerPool;
 		this.lower_threshold = DEFAULT_LOWER_THRESHOLD;
 		this.upper_threshold = DEFAULT_UPPER_THRESHOLD;
+		this.increase_ratio = DEFAULT_INCREASE_RATIO;
+		this.decrease_ratio = DEFAULT_DECREASE_RATIO;
 	}
 	
 	public void run() {
@@ -32,17 +39,29 @@ public class CPUMonitor implements Runnable{
 		client = login();
 		
         while(true) {
-		    try {
-				// Get CPU usage averaged over all the "t1.micro" instances.
-				double averageCPU = getCPUUsage("m1.small", ONE_HOUR);
+        	
+        	// Get CPU usage averaged over all the "t1.micro" instances.
+        	double minuteAverageCPU = getCPUUsage("m1.small", ONE_MINUTE);
+       		// Shrink worker pool if average CPU usage over a minute is
+       		// over threshold.
+			if (minuteAverageCPU > this.upper_threshold &&
+							workerPool.size() < 20) {
 				
-				System.out.println(averageCPU);
+				stretchPool();
 				
-				Thread.sleep(10000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// Waiting 5 minutes to allow new instances to launch.
+				sleep(5*60000);
 			}
+        	
+			double hourAverageCPU = getCPUUsage("m1.small", ONE_HOUR);
+			// Shrink worker pool if hourly average CPU usage is below threshold.
+			if (hourAverageCPU < this.lower_threshold &&
+							workerPool.size() > 1) {
+				
+				shrinkPool();
+			}
+
+			sleep(60000);
 	    }
 	}
 	
@@ -134,4 +153,87 @@ public class CPUMonitor implements Runnable{
 		return result.getDatapoints().get(0).getAverage();	
     }
     
+    /**
+     * 
+     * @param ratio
+     */
+    public void setDecreaseRatio(int ratio){
+    	if (ratio > 1) this.decrease_ratio = ratio;
+    }
+    
+    /**
+     * 
+     * @param ratio
+     */
+    public void setIncreaseRatio(int ratio){
+    	if (ratio > 1) this.increase_ratio = ratio;
+    }
+    
+    /**
+     * 
+     * @param threshold
+     */
+    public void setUpperThreshold(double threshold){
+    	if (this.lower_threshold < threshold && threshold < 100.0) 
+    		this.upper_threshold = threshold;
+    }
+    
+    /**
+     * 
+     * @param threshold
+     */
+    public void setLowerThreshold(double threshold){
+    	if (0.0 < threshold && threshold < this.upper_threshold) 
+    		this.lower_threshold = threshold;
+    }
+    
+    /**
+     * Decrease pool size by <decrease_ratio>. Floor at minimum size.
+     */
+    private void shrinkPool()
+    {
+		int toTerminate = workerPool.size()*(this.decrease_ratio-1);
+		
+		// Make sure number of workers never goes below the minimum.
+		if (toTerminate > workerPool.size()){
+			toTerminate = workerPool.size() - 1;
+		};
+		
+		System.out.println("CPU usage under threshold (" + this.lower_threshold
+				+ "). Launching " + toTerminate + " new instance(s).");
+		
+		workerPool.terminateInstances(toTerminate);
+		
+    }
+    
+    /**
+     * Increase pool size by <increase_ratio>. Ceiling at maximum size.
+     */
+    private void stretchPool(){
+    	
+		int toLaunch = workerPool.size()*(this.increase_ratio-1);
+		
+		// Do not launch more than the maximum number of workers.
+		if (toLaunch + workerPool.size() > 20) toLaunch = 20 - workerPool.size();
+		
+		System.out.println("CPU usage over threshold (" + this.upper_threshold
+				+ "). Launching " + toLaunch + " new instance(s).");
+		
+		workerPool.launchInstances(toLaunch);
+		
+    }
+    
+    /**
+     * Self-explanatory...
+     * 
+     * @param time
+     */
+    public static void sleep(int time){
+	    try {
+			Thread.sleep(time);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
 }

@@ -8,8 +8,5 @@ public class Monitor {
 		
 		(new Thread(new CPUMonitor(workerPool))).start();
 
-		workerPool.launchInstances(4);
-		
-		workerPool.terminateInstances(3);
 	}
 }
