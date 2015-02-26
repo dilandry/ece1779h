@@ -101,6 +101,9 @@ public class WorkerPool {
         }
 	}
 	
+	public ArrayList<String> getList(){
+		return new ArrayList<String>(workerPoolInstanceIDs);
+	}
 
 	public int size(){
 		return workerPoolInstanceIDs.size();
@@ -108,6 +111,8 @@ public class WorkerPool {
 	
 	public void terminateAll(){
 		loadBalancer.deregister(workerPoolInstanceIDs);
+		
+		terminateInstance(workerPoolInstanceIDs);
 	}
 	
 	public void terminateInstance(List<String> instanceIds){

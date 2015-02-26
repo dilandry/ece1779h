@@ -9,87 +9,17 @@ import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
 import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
 
-public class CPUMonitor implements Runnable{
-
-	private static final long ONE_HOUR = 1000 * 60 * 60;
-	private static final long ONE_MINUTE = 1000 * 60 * 1;
+public class CPUMonitor {
 	
-	private static final double DEFAULT_LOWER_THRESHOLD = 20.0;
-	private static final double DEFAULT_UPPER_THRESHOLD = 80.0;
-	private static final int DEFAULT_INCREASE_RATIO = 2;
-	private static final int DEFAULT_DECREASE_RATIO = 2;
-	
-	private static final int MAX_WORKERS = 20;
-	
-	private static AmazonCloudWatchClient client;
-	
-	// Instance variables.
-	private WorkerPool workerPool;
-	private double lower_threshold;
-	private double upper_threshold;
-	private int increase_ratio;
-	private int decrease_ratio;
+	private AmazonCloudWatchClient client;
 	
 	/**
-	 * Constructor. Initialize instance variables to default values.
+	 * Constructor. Create client object with credentials.
 	 * 
 	 * @param workerPool
 	 */
-	public CPUMonitor(WorkerPool workerPool){
-		this.workerPool = workerPool;
-		this.lower_threshold = DEFAULT_LOWER_THRESHOLD;
-		this.upper_threshold = DEFAULT_UPPER_THRESHOLD;
-		this.increase_ratio = DEFAULT_INCREASE_RATIO;
-		this.decrease_ratio = DEFAULT_DECREASE_RATIO;
-	}
-	
-	/**
-	 * Monitor CPU in thread and act on pool size accordingly.
-	 */
-	public void run() {
-		
-		client = login();
-		int timer = 0;
-		
-		System.out.print("Waiting for first instance to start.");
-		while (getCPUUsage("m1.small", ONE_MINUTE) == 0.0) {
-			sleep(15000);
-			
-			System.out.print(".");
-		}
-		System.out.println("DONE.");
-		
-        while(true) {
-        	
-        	// Get CPU usage averaged over all the "m1.small" instances.
-        	double minuteAverageCPU = getCPUUsage("m1.small", ONE_MINUTE);
-        	
-       		// Shrink worker pool if average CPU usage over a minute is
-       		// over threshold.
-			if (minuteAverageCPU > this.upper_threshold &&
-							workerPool.size() < 20) {
-				growPool();
-				
-				// Wait 5 minutes to allow new instances to launch.
-				sleep(5*60000);
-				timer += 5;
-			}
-        	
-			double hourAverageCPU = getCPUUsage("m1.small", ONE_HOUR);
-			
-			// Shrink worker pool if hourly average CPU usage is below threshold.
-			// Timer makes sure worker pool is shrunk max 1 time per hour.
-			if (hourAverageCPU < this.lower_threshold &&
-							workerPool.size() > 1 &&
-							timer > 60) {
-				shrinkPool();
-				
-				timer = 0;
-			}
-
-			sleep(60000);
-			timer += 1;
-	    }
+	public CPUMonitor(){
+		this.client = login();
 	}
 	
 	/**
@@ -97,7 +27,7 @@ public class CPUMonitor implements Runnable{
 	 * 
 	 * @return AmazonCloudWatchClient object, logged in.
 	 */
-	public static AmazonCloudWatchClient login(){
+	private AmazonCloudWatchClient login(){
 		ProfileCredentialsProvider legit = new ProfileCredentialsProvider();
 		
 		AWSCredentials accountID = legit.getCredentials();
@@ -116,7 +46,7 @@ public class CPUMonitor implements Runnable{
 	 * @param instanceId
 	 * @return 
 	 */
-    private static GetMetricStatisticsRequest requestInstance(String instanceId,
+    private GetMetricStatisticsRequest requestId(String instanceId,
     													long period) {
         // Request cpu usage for a period "period", over a time span of "period".
         // Yields one data point. More are possible (if period<start time).
@@ -137,7 +67,7 @@ public class CPUMonitor implements Runnable{
      * @param period
      * @return
      */
-    private static GetMetricStatisticsRequest requestType(String instanceType,
+    private GetMetricStatisticsRequest requestType(String instanceType,
 			long period) {
     	// Request cpu usage for a period "period", over a time span of "period".
     	// Yields one data point. More are possible (if period<start time).
@@ -158,18 +88,19 @@ public class CPUMonitor implements Runnable{
      * @param request
      * @return
      */
-    private static GetMetricStatisticsResult result(final GetMetricStatisticsRequest request) {
+    private GetMetricStatisticsResult result(final GetMetricStatisticsRequest request) {
          return client.getMetricStatistics(request);
     }
     
     /**
-     * Return average CPU usage over "period" for instance "instanceId".
+     * Return average CPU usage over "period" (in millisec) for instances of type
+     * "instanceType".
      * 
      * @param instanceId
      * @param period
      * @return
      */
-    private static double getCPUUsage(String instanceType, long period){
+    public double getCPUbyType(String instanceType, long period){
 		GetMetricStatisticsRequest request = requestType(instanceType, period);
 		GetMetricStatisticsResult result = result(request);
 		
@@ -181,94 +112,20 @@ public class CPUMonitor implements Runnable{
     }
     
     /**
-     * Set multiple by which instance pool is shrunk if CPU usage under threshold.
+     * Return average CPU usage over "period" (in millisec) for instance "instanceId".
      * 
-     * @param ratio
+     * @param instanceId
+     * @param period
+     * @return
      */
-    public void setDecreaseRatio(int ratio){
-    	if (ratio > 1) this.decrease_ratio = ratio;
-    }
-    
-    /**
-     * Set multiple by which instance pool is grown if CPU usage is over threshold.
-     * 
-     * @param ratio
-     */
-    public void setIncreaseRatio(int ratio){
-    	if (ratio > 1) this.increase_ratio = ratio;
-    }
-    
-    /**
-     * Set CPU usage threshold over which pool is grown. To be set, new upper 
-     * threshold must be < 100 and > than the lower threshold.
-     * 
-     * @param threshold
-     */
-    public void setUpperThreshold(double threshold){
-    	if (this.lower_threshold < threshold && threshold < 100.0) 
-    		this.upper_threshold = threshold;
-    }
-    
-    /**
-     * Set CPU usage threshold under which pool is shrunk. To be set, new lower 
-     * threshold must be > 0 and < than the upper threshold.
-     * 
-     * @param threshold
-     */
-    public void setLowerThreshold(double threshold){
-    	if (0.0 < threshold && threshold < this.upper_threshold) 
-    		this.lower_threshold = threshold;
-    }
-    
-    /**
-     * Decrease pool size by [decrease_ratio]. Floor at minimum size.
-     */
-    private void shrinkPool()
-    {
-		int toTerminate = workerPool.size() - workerPool.size()/(this.decrease_ratio);
+    public double getCPUbyId(String instanceId, long period){
+		GetMetricStatisticsRequest request = requestId(instanceId, period);
+		GetMetricStatisticsResult result = result(request);
 		
-		System.out.println(toTerminate);
+		// In case instance is not booted yet.
+		if (result.getDatapoints().size() <= 0) return 0.0;
 		
-		// Make sure number of workers never goes below the minimum.
-		if (toTerminate >= workerPool.size()){
-			toTerminate = workerPool.size() - 1;
-		};
-		
-		System.out.println("Average hourly CPU usage under threshold (" + 
-				this.lower_threshold + "%). Terminating " + 
-				toTerminate + " instance(s).");
-		
-		workerPool.terminateInstances(toTerminate);
-		
-    }
-    
-    /**
-     * Increase pool size by [increase_ratio]. Ceiling at maximum size.
-     */
-    private void growPool(){
-    	
-		int toLaunch = workerPool.size()*(this.increase_ratio-1);
-		
-		// Do not launch more than the maximum number of workers.
-		if (toLaunch + workerPool.size() > MAX_WORKERS) 
-			toLaunch = MAX_WORKERS - workerPool.size();
-		
-		System.out.println("CPU usage over threshold (" + this.upper_threshold
-				+ "%). Launching " + toLaunch + " new instance(s).");
-		
-		workerPool.launchInstances(toLaunch);
-    }
-    
-    /**
-     * Self-explanatory...
-     * 
-     * @param time
-     */
-    public static void sleep(int time){
-	    try {
-			Thread.sleep(time);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		// Makes sense only because there is only one data point.
+		return result.getDatapoints().get(0).getAverage();	
     }
 }
