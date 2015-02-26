@@ -21,11 +21,14 @@ public class WorkerPool {
 	private AmazonEC2 client;
 	private List<String> workerPoolInstanceIDs;
 	
-	// IMAGE_ID of the instances we're launching
-	final String IMAGE_ID = "ami-5c074734";
-	final String KEY_NAME = "didier-key-pair-useast";
+	// IMAGE_ID of the instances we're launching	
+	private String image_id;
+	private String key_name;
 	
-	public WorkerPool(){
+	public WorkerPool(String image_id, String key_name){
+		
+		this.image_id = image_id;
+		this.key_name = key_name;
 		
 		client = login();
 		workerPoolInstanceIDs = new ArrayList<String>();
@@ -58,10 +61,10 @@ public class WorkerPool {
 	
 	private void launchInstance(){
         try {
-        	RunInstancesRequest request = new RunInstancesRequest(IMAGE_ID,1,1);
+        	RunInstancesRequest request = new RunInstancesRequest(image_id,1,1);
 
         	// Set key used to SSH to instance.
-        	request.setKeyName(KEY_NAME);
+        	request.setKeyName(key_name);
         	
         	// Enable detailed monitoring.
         	request.setMonitoring(true);
@@ -91,6 +94,8 @@ public class WorkerPool {
             System.out.println("Error Message: " + ace.getMessage());
         }
 	}
+	
+
 	
 	public int size(){
 		return workerPoolInstanceIDs.size();
