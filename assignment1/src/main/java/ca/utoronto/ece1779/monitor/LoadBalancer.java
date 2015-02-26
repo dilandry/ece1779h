@@ -6,10 +6,12 @@ import java.util.List;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.elasticloadbalancing.AmazonElasticLoadBalancingClient;
+import com.amazonaws.services.elasticloadbalancing.model.DeregisterInstancesFromLoadBalancerRequest;
+import com.amazonaws.services.elasticloadbalancing.model.DeregisterInstancesFromLoadBalancerResult;
 import com.amazonaws.services.elasticloadbalancing.model.Instance;
 import com.amazonaws.services.elasticloadbalancing.model.RegisterInstancesWithLoadBalancerRequest;
+import com.amazonaws.services.elasticloadbalancing.model.RegisterInstancesWithLoadBalancerResult;
 
 public class LoadBalancer {
 	
@@ -36,6 +38,24 @@ public class LoadBalancer {
 		return new AmazonElasticLoadBalancingClient(credentials);
 	}
 	
+	public void deregister(List<String> instanceIds){
+		List<Instance> instances = new ArrayList<Instance>();
+		
+		for (int i=0; i<instanceIds.size(); i++){
+			Instance instance = new Instance(instanceIds.get(i));
+			instances.add(instance);
+		}
+		
+		System.out.println("Deregistering instance(s) \"" + instanceIds.toString() + "\"" +
+				   " from load balancer \"" + load_balancer_name + "\".");
+		
+		DeregisterInstancesFromLoadBalancerRequest request = 
+				new DeregisterInstancesFromLoadBalancerRequest(load_balancer_name, instances);
+		
+		DeregisterInstancesFromLoadBalancerResult result = 
+				client.deregisterInstancesFromLoadBalancer(request);
+	}
+	
 	public void register(String instanceId){
 		Instance instance = new Instance(instanceId);
 		
@@ -43,7 +63,13 @@ public class LoadBalancer {
 		
 		instances.add(instance);
 		
+		System.out.println("Registering instance \"" + instanceId + "\"" +
+						   " in load balancer \"" + load_balancer_name + "\".");
+		
 		RegisterInstancesWithLoadBalancerRequest request = 
 				new RegisterInstancesWithLoadBalancerRequest(load_balancer_name, instances);
+		
+		RegisterInstancesWithLoadBalancerResult result =
+				client.registerInstancesWithLoadBalancer(request);
 	}
 }

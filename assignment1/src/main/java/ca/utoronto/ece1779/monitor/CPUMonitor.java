@@ -49,6 +49,7 @@ public class CPUMonitor implements Runnable{
 	public void run() {
 		
 		client = login();
+		int timer = 0;
 		
 		System.out.print("Waiting for first instance to start.");
 		while (getCPUUsage("m1.small", ONE_MINUTE) == 0.0) {
@@ -71,17 +72,23 @@ public class CPUMonitor implements Runnable{
 				
 				// Wait 5 minutes to allow new instances to launch.
 				sleep(5*60000);
+				timer += 5;
 			}
         	
 			double hourAverageCPU = getCPUUsage("m1.small", ONE_HOUR);
 			
 			// Shrink worker pool if hourly average CPU usage is below threshold.
+			// Timer makes sure worker pool is shrunk max 1 time per hour.
 			if (hourAverageCPU < this.lower_threshold &&
-							workerPool.size() > 1) {
+							workerPool.size() > 1 &&
+							timer > 60) {
 				shrinkPool();
+				
+				timer = 0;
 			}
 
 			sleep(60000);
+			timer += 1;
 	    }
 	}
 	
@@ -218,15 +225,17 @@ public class CPUMonitor implements Runnable{
      */
     private void shrinkPool()
     {
-		int toTerminate = workerPool.size()*(this.decrease_ratio-1);
+		int toTerminate = workerPool.size() - workerPool.size()/(this.decrease_ratio);
+		
+		System.out.println(toTerminate);
 		
 		// Make sure number of workers never goes below the minimum.
-		if (toTerminate > workerPool.size()){
+		if (toTerminate >= workerPool.size()){
 			toTerminate = workerPool.size() - 1;
 		};
 		
 		System.out.println("Average hourly CPU usage under threshold (" + 
-				this.lower_threshold + "). Terminating " + 
+				this.lower_threshold + "%). Terminating " + 
 				toTerminate + " instance(s).");
 		
 		workerPool.terminateInstances(toTerminate);
@@ -245,7 +254,7 @@ public class CPUMonitor implements Runnable{
 			toLaunch = MAX_WORKERS - workerPool.size();
 		
 		System.out.println("CPU usage over threshold (" + this.upper_threshold
-				+ "). Launching " + toLaunch + " new instance(s).");
+				+ "%). Launching " + toLaunch + " new instance(s).");
 		
 		workerPool.launchInstances(toLaunch);
     }

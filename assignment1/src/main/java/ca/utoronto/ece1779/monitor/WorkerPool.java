@@ -24,16 +24,19 @@ public class WorkerPool {
 	// IMAGE_ID of the instances we're launching	
 	private String image_id;
 	private String key_name;
+	private LoadBalancer loadBalancer;
 	
-	public WorkerPool(String image_id, String key_name){
+	public WorkerPool(LoadBalancer loadBalancer, String image_id, String key_name){
 		
+		this.loadBalancer = loadBalancer;
 		this.image_id = image_id;
 		this.key_name = key_name;
 		
 		client = login();
+		
 		workerPoolInstanceIDs = new ArrayList<String>();
 		
-		launchInstances(1);
+		launchInstances(3);
 		
 	}
 	
@@ -76,6 +79,9 @@ public class WorkerPool {
         	System.out.println("Instance Info = "
         							+ instances.get(0).toString());
         	
+        	// Add instance to the load balancer.
+        	loadBalancer.register(instances.get(0).getInstanceId());
+        	
         	// Add instance id to the pool.
         	workerPoolInstanceIDs.add(instances.get(0).getInstanceId());
 
@@ -96,25 +102,23 @@ public class WorkerPool {
 	}
 	
 
-	
 	public int size(){
 		return workerPoolInstanceIDs.size();
 	}
 	
-	public void terminateInstances(int numberInstances){
-		if (numberInstances > workerPoolInstanceIDs.size()) return;
+	public void terminateAll(){
+		loadBalancer.deregister(workerPoolInstanceIDs);
+	}
+	
+	public void terminateInstance(List<String> instanceIds){
+		if (instanceIds.size() == 0) return;
 		
-		// Make a list of the <numberInstances> first instances of the worker pool.
-		// These will be terminated.
-		List<String> instanceIds = new ArrayList<String>();
-		for (int i=0; i<numberInstances; i++){
-			instanceIds.add(workerPoolInstanceIDs.get(i));
-		}
+		System.out.println("Terminating instance(s) " + instanceIds.toString() + ".");
+		
+		loadBalancer.deregister(instanceIds);
 		
 		// Terminate instances in list.
-		try {
-			System.out.println("Terminating instances " + instanceIds.toString() + ".");
-		
+		try {		
 		    TerminateInstancesRequest terminateRequest = new TerminateInstancesRequest(instanceIds);
 		    client.terminateInstances(terminateRequest);
 		} catch (AmazonServiceException e) {
@@ -125,5 +129,18 @@ public class WorkerPool {
 		    System.out.println("Error Code: " + e.getErrorCode());
 		    System.out.println("Request ID: " + e.getRequestId());
 		}
+	}
+	
+	public void terminateInstances(int numberInstances){
+		if (numberInstances > workerPoolInstanceIDs.size()) return;
+		
+		// Make a list of the <numberInstances> first instances of the worker pool.
+		// These will be terminated.
+		List<String> instanceIds = new ArrayList<String>();
+		for (int i=0; i<numberInstances; i++){
+			instanceIds.add(workerPoolInstanceIDs.remove(0));
+		}
+		
+		terminateInstance(instanceIds);
 	}
 }
