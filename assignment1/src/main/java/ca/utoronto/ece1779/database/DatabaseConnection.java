@@ -1,5 +1,3 @@
-package ca.utoronto.ece1779.database;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 
