@@ -25,6 +25,11 @@ public class LoadBalancer {
 		client = login();
 	}
 	
+	/**
+	 * Return a load balancer client with credentials in ~/.aws/credentials
+	 * 
+	 * @return
+	 */
 	public AmazonElasticLoadBalancingClient login(){
 		ProfileCredentialsProvider legit = new ProfileCredentialsProvider();
 		
@@ -38,6 +43,11 @@ public class LoadBalancer {
 		return new AmazonElasticLoadBalancingClient(credentials);
 	}
 	
+	/**
+	 * Deregister (multiple) instances in list from load balancer.
+	 * 
+	 * @param instanceIds
+	 */
 	public void deregister(List<String> instanceIds){
 		List<Instance> instances = new ArrayList<Instance>();
 		
@@ -49,13 +59,20 @@ public class LoadBalancer {
 		System.out.println("Deregistering instance(s) \"" + instanceIds.toString() + "\"" +
 				   " from load balancer \"" + load_balancer_name + "\".");
 		
+		// Generate the request object.
 		DeregisterInstancesFromLoadBalancerRequest request = 
 				new DeregisterInstancesFromLoadBalancerRequest(load_balancer_name, instances);
 		
+		// Send the object.
 		DeregisterInstancesFromLoadBalancerResult result = 
 				client.deregisterInstancesFromLoadBalancer(request);
 	}
 	
+	/**
+	 * Register one instance with the load balancer.
+	 * 
+	 * @param instanceId
+	 */
 	public void register(String instanceId){
 		Instance instance = new Instance(instanceId);
 		
@@ -66,9 +83,11 @@ public class LoadBalancer {
 		System.out.println("Registering instance \"" + instanceId + "\"" +
 						   " in load balancer \"" + load_balancer_name + "\".");
 		
+		// Generate a request object.
 		RegisterInstancesWithLoadBalancerRequest request = 
 				new RegisterInstancesWithLoadBalancerRequest(load_balancer_name, instances);
 		
+		// Send the request.
 		RegisterInstancesWithLoadBalancerResult result =
 				client.registerInstancesWithLoadBalancer(request);
 	}

@@ -21,9 +21,11 @@ public class WorkerPool {
 	private AmazonEC2 client;
 	private List<String> workerPoolInstanceIDs;
 	
-	// IMAGE_ID of the instances we're launching	
+	// Image ID of the (clone) instances we're launching
 	private String image_id;
+	// SSH key to use for instances
 	private String key_name;
+	// Load balancer to which instances will be added.
 	private LoadBalancer loadBalancer;
 	
 	public WorkerPool(LoadBalancer loadBalancer, String image_id, String key_name){
@@ -40,7 +42,13 @@ public class WorkerPool {
 		
 	}
 	
+	/**
+	 * Login using credentials in ~/.aws/credentials and return a client object.
+	 * 
+	 * @return
+	 */
 	public static AmazonEC2Client login(){
+		// Object that gets the AWS credentials in ~/.aws/credentials
 		ProfileCredentialsProvider legit = new ProfileCredentialsProvider();
 		
 		AWSCredentials accountID = legit.getCredentials();
@@ -53,6 +61,11 @@ public class WorkerPool {
 		return new AmazonEC2Client(credentials);
 	}
 	
+	/**
+	 * Launch multiple instances.
+	 * 
+	 * @param numberInstances
+	 */
 	public void launchInstances(int numberInstances){
 		System.out.println("Launching " + numberInstances + " instance(s):");
 		
@@ -62,6 +75,9 @@ public class WorkerPool {
 		}
 	}
 	
+	/**
+	 * Launch a (single) instance and add it to the worker pool.
+	 */
 	private void launchInstance(){
         try {
         	RunInstancesRequest request = new RunInstancesRequest(image_id,1,1);
@@ -101,20 +117,38 @@ public class WorkerPool {
         }
 	}
 	
+	/**
+	 * Get ArrayList of all the worker's instance ids.
+	 * @return
+	 */
 	public ArrayList<String> getList(){
 		return new ArrayList<String>(workerPoolInstanceIDs);
 	}
 
+	/**
+	 * Get worker pool size.
+	 * 
+	 * @return
+	 */
 	public int size(){
 		return workerPoolInstanceIDs.size();
 	}
 	
+	/**
+	 * Terminate all instances in worker pool.
+	 * 
+	 */
 	public void terminateAll(){
 		loadBalancer.deregister(workerPoolInstanceIDs);
 		
 		terminateInstance(workerPoolInstanceIDs);
 	}
 	
+	/**
+	 * Terminate instances in list "instanceIds".
+	 * 
+	 * @param instanceIds
+	 */
 	public void terminateInstance(List<String> instanceIds){
 		if (instanceIds.size() == 0) return;
 		
@@ -136,6 +170,11 @@ public class WorkerPool {
 		}
 	}
 	
+	/**
+	 * Terminate a number (numberInstances) of instances from the pool.
+	 * 
+	 * @param numberInstances
+	 */
 	public void terminateInstances(int numberInstances){
 		if (numberInstances > workerPoolInstanceIDs.size()) return;
 		
