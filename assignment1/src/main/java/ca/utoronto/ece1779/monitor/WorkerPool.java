@@ -36,7 +36,7 @@ public class WorkerPool {
 		
 		workerPoolInstanceIDs = new ArrayList<String>();
 		
-		launchInstances(3);
+		launchInstances(1);
 		
 	}
 	
