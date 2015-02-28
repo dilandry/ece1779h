@@ -1,0 +1,41 @@
+<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+
+    <servlet>
+        <display-name>Initialization</display-name>
+        <servlet-name>Initialization</servlet-name>
+        <servlet-class>ca.utoronto.ece1779.servlet.Initialization
+        </servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet>
+        <display-name>WorkerStatus</display-name>
+        <servlet-name>WorkerStatus</servlet-name>
+        <servlet-class>ca.utoronto.ece1779.servlet.WorkerStatus</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>WorkerStatus</servlet-name>
+        <url-pattern>/cpuload</url-pattern>
+    </servlet-mapping>
+
+    <!-- Set Manager Username and Manager Password -->
+    <!--
+        Usage:
+        In a servlet or jsp:
+        getServletContext().getInitParameter("username");
+        getServletContext().getInitParameter("password");
+    -->
+    <context-param>
+        <description>Manager Username</description>
+        <param-name>username</param-name>
+        <param-value>admin</param-value>
+    </context-param>
+    <context-param>
+        <description>Manager Password</description>
+        <param-name>password</param-name>
+        <param-value>admin</param-value>
+    </context-param>
+    <!-- End of Manager Username and Manager Password -->
+</web-app>

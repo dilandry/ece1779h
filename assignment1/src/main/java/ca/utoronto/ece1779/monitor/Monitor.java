@@ -1,4 +1,4 @@
-package monitor;
+package ca.utoronto.ece1779.monitor;
 
 public class Monitor implements Runnable{
 
@@ -16,10 +16,10 @@ public class Monitor implements Runnable{
 	
 	// Instance variables.
 	private WorkerPool workerPool;
-	private double lower_threshold;
-	private double upper_threshold;
-	private int increase_ratio;
-	private int decrease_ratio;
+	private volatile double lower_threshold;
+	private volatile double upper_threshold;
+	private volatile int increase_ratio;
+	private volatile int decrease_ratio;
 	
 	/**
 	 * Constructor. Initialize instance variables to default values.

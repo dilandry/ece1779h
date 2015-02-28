@@ -1,9 +1,10 @@
+package ca.utoronto.ece1779.database;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 
 import org.apache.tomcat.dbcp.dbcp.cpdsadapter.DriverAdapterCPDS;
 import org.apache.tomcat.dbcp.dbcp.datasources.SharedPoolDataSource;
-
 
 public class DatabaseConnection {
 
