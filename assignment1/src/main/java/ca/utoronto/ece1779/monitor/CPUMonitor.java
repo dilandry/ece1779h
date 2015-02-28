@@ -1,4 +1,4 @@
-package ca.utoronto.ece1779.monitor;
+package monitor;
 
 import java.util.Date;
 
