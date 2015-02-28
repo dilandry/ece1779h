@@ -3,11 +3,15 @@ package ca.utoronto.ece1779.database;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
+
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 public class DeleteAll {
     private static final String ACCESS_KEY = "figure out yourself :)";
@@ -29,8 +33,14 @@ public class DeleteAll {
     }
 
     public static void deleteS3Data() {
-        s3Client.deleteBucket(BUCKET);
-        s3Client.createBucket(BUCKET);
+        
+        // need to delete all objects in bucket
+        ObjectListing objects = s3Client.listObjects(BUCKET);
+        List<S3ObjectSummary> summaries = objects.getObjectSummaries();
+        for (S3ObjectSummary item : summaries) {
+            String key = item.getKey();
+            s3Client.deleteObject(BUCKET, key);
+        }
     }
 
     public static void deleteDataInDatabase() {
