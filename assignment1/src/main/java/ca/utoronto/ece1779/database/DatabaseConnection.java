@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import org.apache.tomcat.dbcp.dbcp.cpdsadapter.DriverAdapterCPDS;
 import org.apache.tomcat.dbcp.dbcp.datasources.SharedPoolDataSource;
 
-
 public class DatabaseConnection {
 
     private volatile SharedPoolDataSource dbcp = null;
