@@ -2,8 +2,8 @@ package ca.utoronto.ece1779.monitor;
 
 public class Monitor implements Runnable{
 
-	private static final long ONE_HOUR = 1000 * 60 * 60;
-	private static final long ONE_MINUTE = 1000 * 60 * 1;
+	private static final int ONE_HOUR = 60 * 60;
+	private static final int ONE_MINUTE = 60;
 	
 	private static final double DEFAULT_LOWER_THRESHOLD = 20.0;
 	private static final double DEFAULT_UPPER_THRESHOLD = 80.0;

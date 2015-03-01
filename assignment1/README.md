@@ -1,9 +1,13 @@
 Readme for the first assignment
 
 # Credentials
-Set it up in DeleteAll
+Your aws credentials should go to `~/.aws/credentials` or
+`/usr/share/tomcat6/.aws/credentials`.
 
-In the monitor package all of them seems to be using from ~/.aws
+- The manager credentials are found in `web.xml`
 
-Maybe setup DeleteAll to use this too?
+
+# What file to edit?
+The `Initialization.java` file should be modified for your own load balancer
+and ssh key.
 

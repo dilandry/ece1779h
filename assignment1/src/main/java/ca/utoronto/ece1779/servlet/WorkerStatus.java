@@ -17,7 +17,6 @@ public class WorkerStatus extends HttpServlet {
 
     private static CPUMonitor cpuMonitor = new CPUMonitor();
 
-    private static final int CPU_PERIOD = 500;
     private static final Gson GSON = new Gson();
 
     public void doGet(HttpServletRequest req, HttpServletResponse res)
@@ -32,7 +31,7 @@ public class WorkerStatus extends HttpServlet {
         for (String workerName : workerNameList) {
             Map<String, String> workerLoad = new HashMap<String, String>();
             workerLoad.put("name", workerName);
-            workerLoad.put("cpu_load", "" + cpuMonitor.getCPUbyId(workerName, CPU_PERIOD));
+            workerLoad.put("cpu_load", "" + cpuMonitor.getCPUbyId(workerName));
 
             workerList.add(workerLoad);
         }

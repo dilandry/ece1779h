@@ -5,9 +5,8 @@
     <servlet>
         <display-name>Initialization</display-name>
         <servlet-name>Initialization</servlet-name>
-        <servlet-class>ca.utoronto.ece1779.servlet.Initialization
-        </servlet-class>
-        <load-on-startup>1</load-on-startup>
+        <servlet-class>ca.utoronto.ece1779.servlet.Initialization</servlet-class>
+        <load-on-startup>0</load-on-startup>
     </servlet>
     <servlet>
         <display-name>WorkerStatus</display-name>
