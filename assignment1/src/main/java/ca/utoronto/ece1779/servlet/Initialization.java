@@ -9,7 +9,7 @@ import ca.utoronto.ece1779.monitor.WorkerPool;
 public class Initialization extends HttpServlet {
 
     public static final String LOAD_BALANCER = "test";
-    public static final String IMAGE_ID = "ami-5ee6b736";
+    public static final String IMAGE_ID = "ami-800658e8";
     public static final String KEY_NAME = "dustin-home";
 
     public void init() {
