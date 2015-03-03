@@ -13,10 +13,18 @@
         <servlet-name>WorkerStatus</servlet-name>
         <servlet-class>ca.utoronto.ece1779.servlet.WorkerStatus</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>upload_image</servlet-name>
+        <jsp-file>/jsp/upload_image.jsp</jsp-file>
+    </servlet>
 
     <servlet-mapping>
         <servlet-name>WorkerStatus</servlet-name>
         <url-pattern>/cpuload</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>upload_image</servlet-name>
+        <url-pattern>/servlet/FileUpload</url-pattern>   
     </servlet-mapping>
 
     <!-- Set Manager Username and Manager Password -->
