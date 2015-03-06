@@ -8,9 +8,9 @@ import ca.utoronto.ece1779.monitor.WorkerPool;
 
 public class Initialization extends HttpServlet {
 
-    public static final String LOAD_BALANCER = "test";
-    public static final String IMAGE_ID = "ami-800658e8";
-    public static final String KEY_NAME = "dustin-home";
+    public static final String LOAD_BALANCER = "gp-26";
+    public static final String IMAGE_ID = "ami-ee81db86";
+    public static final String KEY_NAME = "ece1779-gp26";
 
     public void init() {
         LoadBalancer balancer = new LoadBalancer(LOAD_BALANCER);

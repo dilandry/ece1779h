@@ -17,64 +17,71 @@ import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 
 public class WorkerPool {
-	
+
 	private AmazonEC2 client;
 	private List<String> workerPoolInstanceIDs;
-	
+
 	// Image ID of the (clone) instances we're launching
 	private String image_id;
 	// SSH key to use for instances
 	private String key_name;
 	// Load balancer to which instances will be added.
 	private LoadBalancer loadBalancer;
-	
+
 	public WorkerPool(LoadBalancer loadBalancer, String image_id, String key_name){
-		
+
 		this.loadBalancer = loadBalancer;
 		this.image_id = image_id;
 		this.key_name = key_name;
-		
+
 		client = login();
-		
-		workerPoolInstanceIDs = new ArrayList<String>();
-		
-		launchInstances(1);
-		
+
+		workerPoolInstanceIDs = new ArrayList<String>(loadBalancer.getActiveInstances());
+		// find how many instances there are first.
+        if (workerPoolInstanceIDs.size() > 0) {
+            System.out.println("Workers already present!");
+            System.out.println(workerPoolInstanceIDs);
+        } else {
+            System.out.println("No workers present!");
+            System.out.println("Launching 1 new instance");
+            launchInstances(1);
+        }
+
 	}
-	
+
 	/**
 	 * Login using credentials in ~/.aws/credentials and return a client object.
-	 * 
+	 *
 	 * @return
 	 */
 	public static AmazonEC2Client login(){
 		// Object that gets the AWS credentials in ~/.aws/credentials
 		ProfileCredentialsProvider legit = new ProfileCredentialsProvider();
-		
+
 		AWSCredentials accountID = legit.getCredentials();
-		
+
 		String AWSAccessKey = accountID.getAWSAccessKeyId();
 		String AWSSecretKey = accountID.getAWSSecretKey();
-		
+
 		BasicAWSCredentials credentials = new BasicAWSCredentials(AWSAccessKey, AWSSecretKey);
-	
+
 		return new AmazonEC2Client(credentials);
 	}
-	
+
 	/**
 	 * Launch multiple instances.
-	 * 
+	 *
 	 * @param numberInstances
 	 */
 	public void launchInstances(int numberInstances){
 		System.out.println("Launching " + numberInstances + " instance(s):");
-		
+
 		// Instances are launched one at a time or else they all shut down together.
 		for (int i=0; i<numberInstances; i++){
 			launchInstance();
 		}
 	}
-	
+
 	/**
 	 * Launch a (single) instance and add it to the worker pool.
 	 */
@@ -84,20 +91,20 @@ public class WorkerPool {
 
         	// Set key used to SSH to instance.
         	request.setKeyName(key_name);
-        	
+
         	// Enable detailed monitoring.
         	request.setMonitoring(true);
-        	
+
         	RunInstancesResult result = client.runInstances(request);
         	Reservation reservation = result.getReservation();
         	List<Instance> instances = reservation.getInstances();
-        	
+
         	System.out.println("Instance Info = "
         							+ instances.get(0).toString());
-        	
+
         	// Add instance to the load balancer.
         	loadBalancer.register(instances.get(0).getInstanceId());
-        	
+
         	// Add instance id to the pool.
         	workerPoolInstanceIDs.add(instances.get(0).getInstanceId());
 
@@ -116,48 +123,49 @@ public class WorkerPool {
             System.out.println("Error Message: " + ace.getMessage());
         }
 	}
-	
+
 	/**
 	 * Get ArrayList of all the worker's instance ids.
 	 * @return
 	 */
 	public ArrayList<String> getList(){
+        workerPoolInstanceIDs = new ArrayList<String>(loadBalancer.getActiveInstances());
 		return new ArrayList<String>(workerPoolInstanceIDs);
 	}
 
 	/**
 	 * Get worker pool size.
-	 * 
+	 *
 	 * @return
 	 */
 	public int size(){
 		return workerPoolInstanceIDs.size();
 	}
-	
+
 	/**
 	 * Terminate all instances in worker pool.
-	 * 
+	 *
 	 */
 	public void terminateAll(){
 		loadBalancer.deregister(workerPoolInstanceIDs);
-		
+
 		terminateInstance(workerPoolInstanceIDs);
 	}
-	
+
 	/**
 	 * Terminate instances in list "instanceIds".
-	 * 
+	 *
 	 * @param instanceIds
 	 */
 	public void terminateInstance(List<String> instanceIds){
 		if (instanceIds.size() == 0) return;
-		
+
 		System.out.println("Terminating instance(s) " + instanceIds.toString() + ".");
-		
+
 		loadBalancer.deregister(instanceIds);
-		
+
 		// Terminate instances in list.
-		try {		
+		try {
 		    TerminateInstancesRequest terminateRequest = new TerminateInstancesRequest(instanceIds);
 		    client.terminateInstances(terminateRequest);
 		} catch (AmazonServiceException e) {
@@ -169,22 +177,22 @@ public class WorkerPool {
 		    System.out.println("Request ID: " + e.getRequestId());
 		}
 	}
-	
+
 	/**
 	 * Terminate a number (numberInstances) of instances from the pool.
-	 * 
+	 *
 	 * @param numberInstances
 	 */
 	public void terminateInstances(int numberInstances){
 		if (numberInstances > workerPoolInstanceIDs.size()) return;
-		
+
 		// Make a list of the <numberInstances> first instances of the worker pool.
 		// These will be terminated.
 		List<String> instanceIds = new ArrayList<String>();
 		for (int i=0; i<numberInstances; i++){
 			instanceIds.add(workerPoolInstanceIDs.remove(0));
 		}
-		
+
 		terminateInstance(instanceIds);
 	}
 }

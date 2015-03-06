@@ -1,17 +1,14 @@
 package ca.utoronto.ece1779.monitor;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.elasticloadbalancing.AmazonElasticLoadBalancingClient;
-import com.amazonaws.services.elasticloadbalancing.model.DeregisterInstancesFromLoadBalancerRequest;
-import com.amazonaws.services.elasticloadbalancing.model.DeregisterInstancesFromLoadBalancerResult;
-import com.amazonaws.services.elasticloadbalancing.model.Instance;
-import com.amazonaws.services.elasticloadbalancing.model.RegisterInstancesWithLoadBalancerRequest;
-import com.amazonaws.services.elasticloadbalancing.model.RegisterInstancesWithLoadBalancerResult;
+import com.amazonaws.services.elasticloadbalancing.model.*;
 
 public class LoadBalancer {
 
@@ -96,4 +93,23 @@ public class LoadBalancer {
 		RegisterInstancesWithLoadBalancerResult result =
 				client.registerInstancesWithLoadBalancer(request);
 	}
+
+    public List<String> getActiveInstances() {
+        client.describeLoadBalancers().getLoadBalancerDescriptions();
+        List<String> instanceNames = new LinkedList<String>();
+        List<LoadBalancerDescription> descriptions = client.describeLoadBalancers().getLoadBalancerDescriptions();
+
+        for (LoadBalancerDescription desc: descriptions) {
+            if (desc.getLoadBalancerName().equals(load_balancer_name)) {
+                List<Instance> instances = desc.getInstances();
+
+                for (Instance a : instances) {
+                    instanceNames.add(a.getInstanceId());
+                }
+                return instanceNames;
+            }
+        }
+        // if we reached here, bad things happened
+        return instanceNames;
+    }
 }
